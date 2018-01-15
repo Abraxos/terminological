@@ -44,13 +44,19 @@ Now you should be able to run the tests and go nuts from there:
 **Run all tests**
 
 ```
-(terminological-venv)$ pytest -s -vv terminological.py
+(terminological-venv)$ pytest -s -vv
 ```
 
 **Run all tests with coverage**
 
 ```
-(terminological-venv)$ pytest -s -vv --cov-report html --cov=terminological terminological.py
+(terminological-venv)$ pytest -s -vv --cov-report html --cov=terminological
+```
+
+**Run all the unit tests** _Right now all the tests are unit tests, but eventually there may be integration tests._
+
+```
+(terminological-venv)$ pytest -s -vv --cov-report html --cov=terminological terminological/tests/unit
 ```
 
 ## Examples
