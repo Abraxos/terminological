@@ -1,11 +1,8 @@
-import pytest
-from math import gcd
-from functools import reduce
 import curses
 
-
-# Constants
-INF = float('inf')
+# Local module imports
+from .utils import split, INF
+from .utils import matrix_slice, matrix_to_string, compute_sizes
 
 # Global screen pointer
 SCREEN = None
@@ -61,13 +58,9 @@ class Cell(object):
                 SCREEN.addstr(row, col, self._character)
             self._updated = False
 
-        
+
 def gen_matrix(num_rows, num_cols):
     return [[Cell() for c in range(num_cols)] for r in range(num_rows)]
-
-
-def matrix_to_string(matrix):
-    return '\n'.join([''.join([c.character for c in row]) for row in matrix])
 
 
 def string_to_matrix(string):
@@ -105,61 +98,6 @@ def resize_matrix(matrix, height, width):
         # shrink from the side
         [[row.pop() for _ in range(0-width_d)] for row in matrix]
     current_width = width
-
-    
-def matrix_slice(matrix, row_start, row_len, col_start, col_len):
-    return [r[col_start:col_start + col_len]
-            for r in matrix[row_start:row_start + row_len]]
-
-
-def gcd_of(s):
-    return reduce(gcd, s)
-
-
-class SizeDef(object):
-    def __init__(self, size, weight, min_s, max_s):
-        self.size = min_s
-        self.weight = weight
-        self.scaled_weight = weight
-        self.min_s = min_s
-        self.max_s = max_s
-
-    def grow(self):
-        delta = self.delta
-        self.size += delta
-        return delta
-
-    @property
-    def delta(self):
-        return min(self.scaled_weight, self.max_s - self.size)
-    
-    @property
-    def tup(self):
-        return (self.size, self.weight, self.min_s, self.max_s)
-    
-    def scale(self, scalar):
-        self.scaled_weight = round(self.weight / scalar, 0)
-
-
-def compute_sizes(dimension_list, total_size):
-    D = [SizeDef(*t) for t in dimension_list]
-    scalar = gcd_of({d.weight for d in D})
-    [d.scale(scalar) for d in D]
-
-    # grow each element according to weight until we cannot grow further
-    size = sum(d.size for d in D)
-    while 42:
-        if any(d.delta for d in D):
-            for d in D:
-                if size < total_size:
-                    size += d.grow()
-                    if size > total_size:
-                        d.size -= size - total_size
-                        return [d.tup for d in D]
-                else:
-                    return [d.tup for d in D]
-        else:
-            return [d.tup for d in D]
 
 
 class OutlineType(object):
@@ -364,16 +302,6 @@ def screen_to_string():
             for c in range(w-1):
                 result[-1].append(chr(SCREEN.inch(r, c)))
         return '\n'.join([''.join([c for c in line]) for line in result])
-
-
-def split(string, size):
-    if size == 0:
-        return [string]
-    strings = string.replace('\t', '    ').split('\n')
-    result = []
-    for string in strings:
-        result.extend([string[i:i+size] for i in range(0, len(string), size)])
-    return result
 
 
 class MsgLog(Box):
