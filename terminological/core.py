@@ -1,14 +1,26 @@
+"""
+The core module contains the key base-level features of terminological, such as the terminal drawing
+functionality and other important functions.
+"""
 import curses
 
 # Local module imports
 from .utils import split, INF
 from .utils import matrix_slice, matrix_to_string, compute_sizes
+from .errors import UnknownOutlineTypeError
 
 # Global screen pointer
 SCREEN = None
 
 
+def clear_screen():
+    """Sets the SCREEN global to None to clear it."""
+    global SCREEN # pylint: disable=W0603
+    SCREEN = None
+
+
 class Cell(object):
+    """Represents a single cell on the screen"""
     def __init__(self, character=' ', fg=None, bg=None):
         self._character = character
         self._fg = fg
@@ -17,6 +29,7 @@ class Cell(object):
 
     @property
     def character(self):
+        """Property, returns the characcter associated with the cell."""
         return self._character
 
     @character.setter
@@ -25,6 +38,7 @@ class Cell(object):
 
     @property
     def foreground(self):
+        """Property, returns foreground color value."""
         return self._fg
 
     @foreground.setter
@@ -39,15 +53,15 @@ class Cell(object):
     def background(self, value):
         self._bg = value
 
-    def set(self, character, fg=None, bg=None):
+    def set(self, character, foreground=None, background=None):
         if self.character != character:
             self.character = character
             self._updated = True
-        if fg:
-            self.foreground = fg
+        if foreground:
+            self.foreground = foreground
             self._updated = True
-        if bg:
-            self.background = bg
+        if background:
+            self.background = background
             self._updated = True
         return self._updated
 
@@ -67,11 +81,11 @@ def string_to_matrix(string):
     string = string.split('\n')
     num_rows = len(string)
     num_cols = len(string[0])
-    M = gen_matrix(num_rows, num_cols)
-    for r, R in enumerate(M):
-        for c, C in enumerate(R):
-            C.set(string[r][c])
-    return M
+    matrix = gen_matrix(num_rows, num_cols)
+    for row_idx, row in enumerate(matrix):
+        for col_idx, cell in enumerate(row):
+            cell.set(string[row_idx][col_idx])
+    return matrix
 
 
 def resize_matrix(matrix, height, width):
@@ -89,7 +103,7 @@ def resize_matrix(matrix, height, width):
         # shrink from the bottom
         [matrix.pop() for _ in range(0-height_d)]
     current_height = height
-    
+
     if width_d > 0:
         # add on from the side
         [[row.append(Cell()) for _ in range(width_d)]
@@ -101,6 +115,7 @@ def resize_matrix(matrix, height, width):
 
 
 class OutlineType(object):
+    """Effectively an enum representing the available outline types for boxes"""
     No = 0
     Box = 1
     HorizontalBounds = 2
@@ -110,6 +125,8 @@ class OutlineType(object):
 
 
 class Box(object):
+    """The key object in terminological, the box handles managing all of the cells inside of it. All
+       widgets are typically in some way building upon boxes."""
     def __init__(self, height=0, width=0, parent_box=None, matrix=None,
                  weight=1, max_size=INF, min_size=0, outline=OutlineType.No):
         self.matrix = None
@@ -124,19 +141,19 @@ class Box(object):
         self.children = []
 
     def _draw_outline_corners(self):
-        if len(self.matrix) > 0 and len(self.matrix[0]) > 0:
+        if self.matrix and self.matrix[0]:
             self.matrix[0][0].set('┌')
             self.matrix[0][self.width-1].set('┐')
             self.matrix[self.height-1][0].set('└')
             self.matrix[self.height-1][self.width-1].set('┘')
 
     def _draw_outline_top_bottom(self, character='─'):
-        if len(self.matrix) > 0 and len(self.matrix[0]) > 0:
+        if self.matrix and self.matrix[0]:
             [c.set(character) for c in self.matrix[0][1:-1]]
             [c.set(character) for c in self.matrix[self.height-1][1:-1]]
 
     def _draw_outline_right_left(self, character='│'):
-        if len(self.matrix) > 0 and len(self.matrix[0]) > 0:
+        if self.matrix and self.matrix[0]:
             [r[0].set(character) for r in self.matrix[1:-1]]
             [r[self.width-1].set(character) for r in self.matrix[1:-1]]
 
@@ -151,6 +168,9 @@ class Box(object):
             return self.height, self.width - 2, 1, 0
         elif self.outline == OutlineType.VerticalBounds:
             return self.height - 2, self.width, 0, 1
+        else:
+            raise UnknownOutlineTypeError("{} is not an OutlineType accepted by _outline_offsets()"\
+                                          .format(self.outline))
 
     @property
     def num_rows(self):
@@ -232,11 +252,11 @@ class Filler(Box):
 
     def draw(self):
         Box.draw(self)
-        for r in range(self.num_rows):
-            for c in range(self.num_cols):
-                self.matrix[r][c].set(self.character)
+        for row_idx in range(self.num_rows):
+            for col_idx in range(self.num_cols):
+                self.matrix[row_idx][col_idx].set(self.character)
 
-    
+
 class VerticalBox(Box):
     def resize(self, new_height=None, new_width=None):
         Box.resize(self, new_height, new_width)
@@ -247,15 +267,14 @@ class VerticalBox(Box):
                                  for c in self.children], height)
         sizes = [(int(h[0]), width) for h in heights]
         # update their matrices
-        for i, c in enumerate(self.children):
-            h, w = sizes[i]
-            c.set_matrix(matrix_slice(self.matrix, v_offset, h,
-                                      h_offset, w))
-            v_offset += h
+        for i, child in enumerate(self.children):
+            height, width = sizes[i]
+            child.set_matrix(matrix_slice(self.matrix, v_offset, height, h_offset, width))
+            v_offset += height
             # call their own resize functions
-            c.resize(new_height=h, new_width=w)
+            child.resize(new_height=height, new_width=width)
         self.draw()
-    
+
 
 class HorizontalBox(Box):
     def resize(self, new_height=None, new_width=None):
@@ -267,25 +286,25 @@ class HorizontalBox(Box):
                                 for c in self.children], width)
         sizes = [(height, int(w[0])) for w in widths]
         # update their matrices
-        for i, c in enumerate(self.children):
-            h, w = sizes[i]
-            c.set_matrix(matrix_slice(self.matrix, v_offset, h, h_offset, w))
-            h_offset += w
+        for i, child in enumerate(self.children):
+            height, width = sizes[i]
+            child.set_matrix(matrix_slice(self.matrix, v_offset, height, h_offset, width))
+            h_offset += width
             # call their own resize functions
-            c.resize(new_height=h, new_width=w)
+            child.resize(new_height=height, new_width=width)
         self.draw()
 
 
 def start(mainframe: Box, run_callback=None):
     # make the cursor invisible
     def wrapped_main(stdscr):
-        global SCREEN
+        global SCREEN # pylint: disable=W0603
         SCREEN = stdscr
         curses.curs_set(0)
         # Clear screen
         SCREEN.clear()
-        r, c = SCREEN.getmaxyx()
-        mainframe.resize(r, c-1)
+        max_rows, max_cols = SCREEN.getmaxyx()
+        mainframe.resize(max_rows, max_cols-1)
         if run_callback is not None:
             run_callback()
     curses.wrapper(wrapped_main)
@@ -294,14 +313,13 @@ def start(mainframe: Box, run_callback=None):
 def screen_to_string():
     if not SCREEN:
         return ''
-    else:
-        result = []
-        h, w = SCREEN.getmaxyx()
-        for r in range(h):
-            result.append([])
-            for c in range(w-1):
-                result[-1].append(chr(SCREEN.inch(r, c)))
-        return '\n'.join([''.join([c for c in line]) for line in result])
+    result = []
+    height, width = SCREEN.getmaxyx()
+    for row_idx in range(height):
+        result.append([])
+        for col_idx in range(width-1):
+            result[-1].append(chr(SCREEN.inch(row_idx, col_idx)))
+    return '\n'.join([''.join([c for c in line]) for line in result])
 
 
 class MsgLog(Box):
@@ -313,7 +331,7 @@ class MsgLog(Box):
                      max_size, min_size, outline=outline)
         self.history_max = history_max
         self.message_history = []
-        
+
     def add_message(self, msg):
         if len(self.message_history) >= self.history_max:
             self.message_history.pop(0)
@@ -339,4 +357,3 @@ class MsgLog(Box):
         [display.append(' ' * width) for _ in range(height - len(display))]
         for i, line in enumerate(display):
             self._print_line(h_offset, i+v_offset, line, width)
-

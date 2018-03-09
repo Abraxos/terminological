@@ -30,7 +30,7 @@ $ git clone git@github.com:Abraxos/terminological.git
 
 ```
 $ mkvirtualenv --python=$(which python3) terminological-venv
-(terminological-venv)$ 
+(terminological-venv)$
 ```
 
 3) Install the package, which also installs the pre-requisites
@@ -44,13 +44,13 @@ Now you should be able to run the tests and go nuts from there:
 **Run all tests**
 
 ```
-(terminological-venv)$ pytest -s -vv
+(terminological-venv)$ pytest -s -vv terminological/tests/
 ```
 
 **Run all tests with coverage**
 
 ```
-(terminological-venv)$ pytest -s -vv --cov-report html --cov=terminological
+(terminological-venv)$ pytest -s -vv --cov-report=html --cov=terminological terminological/tests/
 ```
 
 **Run all the unit tests** _Right now all the tests are unit tests, but eventually there may be integration tests._

@@ -6,7 +6,7 @@ from terminological.core import gen_matrix, resize_matrix, matrix_to_string
 from terminological.core import string_to_matrix, matrix_slice, INF
 from terminological.core import compute_sizes, HorizontalBox, Filler, MsgLog
 from terminological.core import VerticalBox, OutlineType, start, split
-from terminological.core import screen_to_string
+from terminological.core import screen_to_string, clear_screen
 
 
 @pytest.mark.parametrize("string, size, expected", [
@@ -300,6 +300,7 @@ def test_bounded_boxed_horizontal_box():
 
 
 def test_start():
+    clear_screen()
     assert screen_to_string() == ''
     H = HorizontalBox(outline=OutlineType.HorizontalBounds)\
         .add_child(VerticalBox(outline=OutlineType.VerticalBounds)
@@ -308,10 +309,9 @@ def test_start():
                    .add_child(Filler('R')))
 
     def main():
-        global SCREEN
         scr = screen_to_string()
         assert str(H) == scr
-        SCREEN = None
+        clear_screen()
 
     start(H, main)
 
@@ -341,7 +341,7 @@ def test_msg_log():
     M.add_message('3333')
     M.add_message('4444')
     assert str(M) == '2222 \n3333 \n4444 \n     \n     '
-    
+
 
 def test_h_bounded_msg_log():
     M = MsgLog(8, 4, 6, outline=OutlineType.HorizontalBounds)
@@ -395,7 +395,7 @@ def test_v_bounded_msg_log():
 
 def test_msg_log_rendering():
     B = HorizontalBox(outline=OutlineType.VerticalBoundBox).add_child(MsgLog())
-    
+
     def main():
         log = B.children[0]
         msgs = '''
@@ -403,7 +403,7 @@ def test_msg_log_rendering():
         not all those who wander are lost \
         the old that is strong does not whither \
         deep roots are not touched by the frost
-        
+
         from the ashes a fire shall be woken \
         a light from the shadow shall spring \
         renewed be the blade that was broken \
@@ -411,5 +411,6 @@ def test_msg_log_rendering():
         for m in msgs.split('\n'):
             log.add_message(m)
             B.draw()
+        clear_screen()
 
     start(B, main)
