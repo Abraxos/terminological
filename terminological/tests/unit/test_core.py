@@ -1,5 +1,5 @@
-import pytest
 from itertools import product
+import pytest
 
 # Terminological Imports
 from terminological.core import gen_matrix, resize_matrix, matrix_to_string

@@ -279,19 +279,20 @@ class VerticalBox(Box):
 class HorizontalBox(Box):
     def resize(self, new_height=None, new_width=None):
         Box.resize(self, new_height, new_width)
-        # control for outlines
-        height, width, h_offset, v_offset = self._outline_offsets()
-        # compute the new sizes for the children elements
-        widths = compute_sizes([(0, c.weight, c.min_size, c.max_size)
-                                for c in self.children], width)
-        sizes = [(height, int(w[0])) for w in widths]
-        # update their matrices
-        for i, child in enumerate(self.children):
-            height, width = sizes[i]
-            child.set_matrix(matrix_slice(self.matrix, v_offset, height, h_offset, width))
-            h_offset += width
-            # call their own resize functions
-            child.resize(new_height=height, new_width=width)
+        if self.children:
+            # control for outlines
+            height, width, h_offset, v_offset = self._outline_offsets()
+            # compute the new sizes for the children elements
+            widths = compute_sizes([(0, c.weight, c.min_size, c.max_size)
+                                    for c in self.children], width)
+            sizes = [(height, int(w[0])) for w in widths]
+            # update their matrices
+            for i, child in enumerate(self.children):
+                height, width = sizes[i]
+                child.set_matrix(matrix_slice(self.matrix, v_offset, height, h_offset, width))
+                h_offset += width
+                # call their own resize functions
+                child.resize(new_height=height, new_width=width)
         self.draw()
 
 
@@ -341,8 +342,7 @@ class MsgLog(Box):
     def _print_line(self, h_offset, v_offset, line, width):
         row = self.matrix[v_offset]
         [row[i+h_offset].set(ch) for i, ch in enumerate(line) if i < width]
-        [row[i].set(' ')
-         for i in range(len(line) + h_offset, width + h_offset)]
+        [row[i].set(' ') for i in range(len(line) + h_offset, width + h_offset)]
 
     def draw(self):
         Box.draw(self)

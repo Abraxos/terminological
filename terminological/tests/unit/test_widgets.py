@@ -1,5 +1,6 @@
 from terminological.widgets import StrBox
 from terminological.core import OutlineType
+from terminological.widgets import LabeledProgressBar
 
 
 def box_top(length):
@@ -23,3 +24,24 @@ def test_string_box():
         + ('│' + ' ' * 18 + '│\n') * 8 + box_bottom(20)
     box.resize(2, 2)
     assert str(box) == box_top(2) + box_bottom(2)
+
+def test_labeled_progress_bar():
+    progress_bar = LabeledProgressBar('stuff')
+    print()
+    # Make sure nothing crashes
+    for i in range(111):
+        progress_bar.update(percentage=i)
+        progress_bar.stretch(i)
+        print(str(progress_bar))
+    # Test specific cases
+    progress_bar.stretch(10)
+    progress_bar.update(0, 'Test Progress Bar', 'Test Message')
+    assert str(progress_bar) == "┌[Test P]┐\n│Test Mes│\n└[    0%]┘"
+    progress_bar.update(50, 'Test Progress Bar', 'Test Message')
+    assert str(progress_bar) == "┌[Test P]┐\n│Test Mes│\n└[█  50%]┘"
+    progress_bar.update(100, 'Test Progress Bar', 'Test Message')
+    assert str(progress_bar) == "┌[Test P]┐\n│Test Mes│\n└[██100%]┘"
+    progress_bar.update(0, '', '')
+    assert str(progress_bar) == "┌[]──────┐\n│        │\n└[    0%]┘"
+    progress_bar.update(0, 'a', 'b')
+    assert str(progress_bar) == "┌[a]─────┐\n│b       │\n└[    0%]┘"

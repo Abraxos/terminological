@@ -59,4 +59,10 @@ Now you should be able to run the tests and go nuts from there:
 (terminological-venv)$ pytest -s -vv --cov-report html --cov=terminological terminological/tests/unit
 ```
 
+**Run a specific test**
+
+```
+(terminological-venv)$ pytest -s -vv --cov=terminological --cov-report=html terminological/tests/unit/test_core.py::test_start
+```
+
 ## Examples
